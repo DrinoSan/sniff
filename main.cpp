@@ -8,8 +8,10 @@ int main( int argc, char* argv[] )
     char       errbuf[ PCAP_ERRBUF_SIZE ];
     pcap_if_t* devices = nullptr;
 
-    bpf_u_int32 maskp; /* The netmask of our sniffing device */
-    bpf_u_int32 netp;  /* The IP of our sniffing device */
+    bpf_u_int32 maskp; /* subnet mask */
+    bpf_u_int32 netp;  /* ip          */
+    char*       net;   /* dot notation of the network address */
+    char*       mask;  /* dot notation of the network mask    */
 
     int ret = pcap_findalldevs( &devices, errbuf );
     if ( ret != 0 )
@@ -31,7 +33,7 @@ int main( int argc, char* argv[] )
     /* get the network address in a human readable form */
     struct in_addr addr;
     addr.s_addr = netp;
-    char* net   = inet_ntoa( addr );
+    net         = inet_ntoa( addr );
 
     if ( net == NULL )
     {
@@ -42,7 +44,7 @@ int main( int argc, char* argv[] )
     printf( "Net : %s\n", net );
 
     addr.s_addr = maskp;
-    char* mask  = inet_ntoa( addr );
+    mask        = inet_ntoa( addr );
 
     if ( mask == NULL )
     {
