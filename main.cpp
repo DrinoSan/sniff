@@ -1,7 +1,61 @@
 #include <cstdio>
 #include <cstdlib>
+#include <net/ethernet.h>
 #include <pcap.h>
 #include <stdio.h>
+
+// void packet_handler( u_char* args, const struct pcap_pkthdr* pack_hdr,
+//                      const u_char* packet )
+// {
+//     printf( "Packet captured of length: %d\n", pack_hdr->len );
+
+//     printf( "Grabbed packet of length %d\n", pack_hdr->len );
+//     printf( "Recieved at ..... %s\n",
+//             ctime( ( const time_t* ) &pack_hdr->ts.tv_sec ) );
+//     printf( "Ethernet address length is %d\n", ETHER_HDR_LEN );
+
+//     struct ether_header* ether_ptr;
+//     ether_ptr = ( struct ether_header* ) packet;
+
+//     if ( ntohs( ether_ptr->ether_type ) == ETHERTYPE_IP )
+//     {
+//         printf( "Ethernet type hex:%x dec:%d is an IP packet\n",
+//                 ntohs( ether_ptr->ether_type ),
+//                 ntohs( ether_ptr->ether_type ) );
+//     }
+//     else if ( ntohs( ether_ptr->ether_type ) == ETHERTYPE_ARP )
+//     {
+//         printf( "Ethernet type hex:%x dec:%d is an ARP packet\n",
+//                 ntohs( ether_ptr->ether_type ),
+//                 ntohs( ether_ptr->ether_type ) );
+//     }
+//     else
+//     {
+//         printf( "Ethernet type %x not IP", ntohs( ether_ptr->ether_type ) );
+//         exit( 1 );
+//     }
+
+//     int32_t i;
+//     u_char* ptr;
+
+//     ptr = ether_ptr->ether_dhost;
+//     i   = ETHER_ADDR_LEN;
+//     printf( " Destination Address:  " );
+//     do
+//     {
+//         printf( "%s%x", ( i == ETHER_ADDR_LEN ) ? " " : ":", *ptr++ );
+//     } while ( --i > 0 );
+//     printf( "\n" );
+
+//     ptr = ether_ptr->ether_shost;
+//     i   = ETHER_ADDR_LEN;
+//     printf( " Source Address:  " );
+//     do
+//     {
+//         printf( "%s%x", ( i == ETHER_ADDR_LEN ) ? " " : ":", *ptr++ );
+//     } while ( --i > 0 );
+//     printf( "\n" );
+// }
 
 int main( int argc, char* argv[] )
 {
@@ -10,8 +64,6 @@ int main( int argc, char* argv[] )
 
     bpf_u_int32 maskp; /* subnet mask */
     bpf_u_int32 netp;  /* ip          */
-    char*       net;   /* dot notation of the network address */
-    char*       mask;  /* dot notation of the network mask    */
 
     int ret = pcap_findalldevs( &devices, errbuf );
     if ( ret != 0 )
@@ -30,29 +82,72 @@ int main( int argc, char* argv[] )
 
     printf( "DEV : %s\n", dev->name );
 
-    /* get the network address in a human readable form */
-    struct in_addr addr;
-    addr.s_addr = netp;
-    net         = inet_ntoa( addr );
-
-    if ( net == NULL )
+    pcap_t* handle;
+    handle = pcap_open_live( dev->name, BUFSIZ, 1, 0, errbuf );
+    if ( handle == NULL )
     {
-        perror( "inet_ntoa" );
+        fprintf( stderr, "Couldn't open device %s: %s\n", dev->name, errbuf );
+        return ( 2 );
+    }
+
+    const u_char*      packet;
+    struct pcap_pkthdr pack_hdr;
+    packet = pcap_next( handle, &pack_hdr );
+    if ( packet == nullptr )
+    {
+        printf( "No packet for you today\n" );
+        return ( 2 );
+    }
+
+    // pcap_loop( handle, 0, packet_handler, NULL );
+
+    printf( "Grabbed packet of length %d\n", pack_hdr.len );
+    printf( "Recieved at ..... %s\n",
+            ctime( ( const time_t* ) &pack_hdr.ts.tv_sec ) );
+    printf( "Ethernet address length is %d\n", ETHER_HDR_LEN );
+
+    struct ether_header* ether_ptr;
+    ether_ptr = ( struct ether_header* ) packet;
+
+    if ( ntohs( ether_ptr->ether_type ) == ETHERTYPE_IP )
+    {
+        printf( "Ethernet type hex:%x dec:%d is an IP packet\n",
+                ntohs( ether_ptr->ether_type ),
+                ntohs( ether_ptr->ether_type ) );
+    }
+    else if ( ntohs( ether_ptr->ether_type ) == ETHERTYPE_ARP )
+    {
+        printf( "Ethernet type hex:%x dec:%d is an ARP packet\n",
+                ntohs( ether_ptr->ether_type ),
+                ntohs( ether_ptr->ether_type ) );
+    }
+    else
+    {
+        printf( "Ethernet type %x not IP", ntohs( ether_ptr->ether_type ) );
         exit( 1 );
     }
 
-    printf( "Net : %s\n", net );
+    int32_t i;
+    u_char* ptr;
 
-    addr.s_addr = maskp;
-    mask        = inet_ntoa( addr );
-
-    if ( mask == NULL )
+    ptr = ether_ptr->ether_dhost;
+    i   = ETHER_ADDR_LEN;
+    printf( " Destination Address:  " );
+    do
     {
-        perror( "inet_ntoa" );
-        exit( 1 );
-    }
+        printf( "%s%x", ( i == ETHER_ADDR_LEN ) ? " " : ":", *ptr++ );
+    } while ( --i > 0 );
+    printf( "\n" );
 
-    printf( "Mask: %s\n", mask );
+    ptr = ether_ptr->ether_shost;
+    i   = ETHER_ADDR_LEN;
+    printf( " Source Address:  " );
+    do
+    {
+        printf( "%s%x", ( i == ETHER_ADDR_LEN ) ? " " : ":", *ptr++ );
+    } while ( --i > 0 );
+    printf( "\n" );
+
 
     pcap_freealldevs( devices );
     return ( 0 );
