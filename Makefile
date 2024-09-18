@@ -4,7 +4,7 @@
 CC = gcc
 
 # Source files
-SRC = main.cpp
+SRC = main.c
 
 # Output executable
 TARGET = main

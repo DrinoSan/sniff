@@ -1,8 +1,8 @@
-#include <cstdio>
-#include <cstdlib>
 #include <net/ethernet.h>
+#include <netinet/ip.h>
 #include <pcap.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 // void packet_handler( u_char* args, const struct pcap_pkthdr* pack_hdr,
 //                      const u_char* packet )
@@ -60,7 +60,7 @@
 int main( int argc, char* argv[] )
 {
     char       errbuf[ PCAP_ERRBUF_SIZE ];
-    pcap_if_t* devices = nullptr;
+    pcap_if_t* devices = NULL;
 
     bpf_u_int32 maskp; /* subnet mask */
     bpf_u_int32 netp;  /* ip          */
@@ -93,7 +93,7 @@ int main( int argc, char* argv[] )
     const u_char*      packet;
     struct pcap_pkthdr pack_hdr;
     packet = pcap_next( handle, &pack_hdr );
-    if ( packet == nullptr )
+    if ( packet == NULL )
     {
         printf( "No packet for you today\n" );
         return ( 2 );
@@ -114,6 +114,14 @@ int main( int argc, char* argv[] )
         printf( "Ethernet type hex:%x dec:%d is an IP packet\n",
                 ntohs( ether_ptr->ether_type ),
                 ntohs( ether_ptr->ether_type ) );
+
+        // Skip the Ethernet header (14 bytes)
+        const u_char* ip_header = packet + sizeof( struct ether_header );
+        struct ip*    ip_ptr    = ( struct ip* ) ip_header;
+
+        // Extract and print IP addresses
+        printf( "Source IP: %s\n", inet_ntoa( ip_ptr->ip_src ) );
+        printf( "Destination IP: %s\n", inet_ntoa( ip_ptr->ip_dst ) );
     }
     else if ( ntohs( ether_ptr->ether_type ) == ETHERTYPE_ARP )
     {
@@ -147,7 +155,6 @@ int main( int argc, char* argv[] )
         printf( "%s%x", ( i == ETHER_ADDR_LEN ) ? " " : ":", *ptr++ );
     } while ( --i > 0 );
     printf( "\n" );
-
 
     pcap_freealldevs( devices );
     return ( 0 );
