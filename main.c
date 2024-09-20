@@ -45,38 +45,19 @@ int main( int argc, char* argv[] )
 
     printf( "DEV : %s\n", dev->name );
 
-	 // Create a capture handle
-    pcap_t* handle = pcap_create(dev->name, errbuf);
-    if (handle == NULL) {
-        fprintf(stderr, "Couldn't create handle for device %s: %s\n", dev->name, errbuf);
-        return (2);
+	 // We need to set buffer timeout to something bigger than 0
+	 // With 0 we say that first we need to fill up the buffer fully and only then we would call the callback
+    pcap_t* handle = pcap_open_live( dev->name, BUFSIZ, 1, 1000, errbuf );
+    if ( handle == NULL )
+    {
+        printf( "pcap_open_live(): %s\n", errbuf );
+        fprintf( stderr, "Couldn't open device %s: %s\n", dev->name, errbuf );
+        return ( 2 );
     }
-
-    // Set buffer size (in bytes)
-    if (pcap_set_buffer_size(handle, 10) != 0) {
-        fprintf(stderr, "Failed to set buffer size\n");
-        pcap_close(handle);
-        return (2);
-    }
-
-    // Set immediate mode (optional, for real-time capture)
-    pcap_set_immediate_mode(handle, 1);
-
-    // Activate the capture handle
-    if (pcap_activate(handle) != 0) {
-        fprintf(stderr, "Failed to activate handle\n");
-        pcap_close(handle);
-        return (2);
-    }
-
 
 	 //pcap_set_immediate_mode(handle, 1);
     /* Lets try and compile the program.. non-optimized */
     struct bpf_program fp; /* hold compiled program     */
-    struct in_addr     ip_addr;
-    ip_addr.s_addr = netp;
-
-    fprintf( stdout, "\nnet: %s!\n", inet_ntoa( ip_addr ) );
     ret = pcap_compile( handle, &fp, argv[ 1 ], 0, netp );
 
     if ( ret != 0 )
