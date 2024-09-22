@@ -53,9 +53,9 @@ u_char* handle_IP( u_char* args, const struct pcap_pkthdr* pkthdr,
     ip = ( struct my_ip* ) ( packet + sizeof( struct ether_header ) );
 
     u_int length = pkthdr->len;
-		fprintf(stdout, "pkthdr->len : %d sizeof( struct ether_header ): %lu\n", length, sizeof( struct ether_header ));
+    fprintf( stdout, "pkthdr->len : %d sizeof( struct ether_header ): %lu\n",
+             length, sizeof( struct ether_header ) );
     length -= sizeof( struct ether_header );
-
 
     /* check to see we have a packet of valid length */
     if ( length < sizeof( struct my_ip ) )
@@ -169,8 +169,9 @@ int main( int argc, char* argv[] )
 
     printf( "DEV : %s\n", dev->name );
 
-	 // We need to set buffer timeout to something bigger than 0
-	 // With 0 we say that first we need to fill up the buffer fully and only then we would call the callback
+    // We need to set buffer timeout to something bigger than 0
+    // With 0 we say that first we need to fill up the buffer fully and only
+    // then we would call the callback
     pcap_t* handle = pcap_open_live( dev->name, BUFSIZ, 1, 1000, errbuf );
     if ( handle == NULL )
     {
